@@ -1,0 +1,465 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Georgia', serif; }
+
+  #app {
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* BG layers */
+  .bg-layer {
+    position: absolute; inset: 0;
+    display: none;
+    background-size: cover;
+    background-position: center;
+    transition: opacity 0.6s;
+  }
+  .bg-layer.active { display: block; }
+
+  /* Page system */
+  .page {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+    animation: fadeIn 0.7s ease;
+  }
+  .page.active { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ENVELOPE */
+  .envelope-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+  }
+  .envelope {
+    width: 320px; height: 200px;
+    position: relative;
+    cursor: pointer;
+    filter: drop-shadow(0 8px 24px rgba(0,0,0,0.18));
+    transition: transform 0.3s;
+  }
+  .envelope:hover { transform: scale(1.03); }
+  .envelope-body {
+    width: 320px; height: 200px;
+    background: linear-gradient(135deg, #fff9f0, #fff3e0);
+    border: 2px solid #d4a843;
+    border-radius: 4px;
+    position: absolute;
+    top: 0; left: 0;
+  }
+  .envelope-flap {
+    position: absolute;
+    top: 0; left: 0;
+    width: 0; height: 0;
+    border-left: 160px solid transparent;
+    border-right: 160px solid transparent;
+    border-top: 100px solid #f5e6c8;
+    filter: drop-shadow(0 2px 4px rgba(180,140,60,0.3));
+    transform-origin: top center;
+    transition: transform 0.6s cubic-bezier(.4,0,.2,1);
+    z-index: 2;
+  }
+  .envelope-flap.open {
+    transform: rotateX(180deg);
+  }
+  .envelope-bottom {
+    position: absolute; bottom: 0; left: 0; width: 0; height: 0;
+    border-left: 160px solid transparent;
+    border-right: 160px solid transparent;
+    border-bottom: 90px solid #ede0c4;
+  }
+  .envelope-left {
+    position: absolute; top: 0; left: 0; width: 0; height: 0;
+    border-left: 140px solid #f0ddb0;
+    border-top: 100px solid transparent;
+    border-bottom: 100px solid transparent;
+    opacity: 0.5;
+  }
+  .envelope-right {
+    position: absolute; top: 0; right: 0; width: 0; height: 0;
+    border-right: 140px solid #f0ddb0;
+    border-top: 100px solid transparent;
+    border-bottom: 100px solid transparent;
+    opacity: 0.5;
+  }
+  .envelope-seal {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    z-index: 3;
+    background: radial-gradient(circle, #d4a843, #a07820);
+    border-radius: 50%;
+    width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 22px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .gold-btn {
+    background: linear-gradient(135deg, #f5c842, #c8960a, #f5c842);
+    color: #4a3000;
+    border: none;
+    border-radius: 30px;
+    padding: 13px 36px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(180,140,20,0.4);
+    letter-spacing: 1px;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .gold-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 24px rgba(180,140,20,0.6);
+  }
+
+  /* CARD page */
+  .invite-card {
+    background: rgba(255,255,255,0.92);
+    border: 2px solid #d4a843;
+    border-radius: 16px;
+    padding: 24px 28px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  .invite-card .ornament { font-size: 28px; color: #c8960a; margin-bottom: 4px; }
+  .invite-card h2 { font-size: 18px; color: #7a4f00; margin-bottom: 8px; line-height: 1.4; }
+  .invite-card .body-text { font-size: 14px; color: #3a2800; line-height: 1.7; margin-bottom: 12px; }
+  .invite-card .detail { background: #fff8e6; border: 1px solid #e8cc80; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 14px; color: #5a3c00; }
+  .invite-card .detail strong { color: #9a6800; }
+
+  /* Photo page */
+  .photo-page { text-align: center; }
+  .photo-frame {
+    width: 200px; height: 220px;
+    border: 4px solid #d4a843;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 0 auto 16px;
+    background: #f5e6c8;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+    position: relative;
+  }
+  .photo-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; color: #a07820; font-size: 13px; text-align: center; padding: 12px;
+  }
+  .photo-placeholder .horse-icon { font-size: 56px; }
+  .upload-photo-btn {
+    background: #fff8e6; border: 1.5px dashed #d4a843; border-radius: 8px;
+    padding: 8px 18px; color: #9a6800; font-size: 13px; cursor: pointer;
+    margin-bottom: 12px;
+  }
+  #photoInput { display: none; }
+
+  /* Map area */
+  .map-area {
+    background: #f0f4f0; border: 1.5px solid #c0d0b0;
+    border-radius: 10px; padding: 14px; margin-bottom: 10px;
+    text-align: center; font-size: 13px; color: #4a5a40;
+  }
+  .map-input { width: 100%; padding: 8px 10px; border: 1.5px solid #c8b060; border-radius: 8px; font-size: 13px; margin-top: 6px; }
+
+  /* Music */
+  .music-area { display: flex; align-items: center; gap: 10px; background: #fff8e6; border: 1.5px solid #e8cc80; border-radius: 8px; padding: 10px 14px; margin-bottom: 10px; }
+  .music-area label { font-size: 13px; color: #7a5000; flex: 1; }
+  #audioPlayer { display: none; }
+  .music-btn { background: #f5c842; border: none; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; color: #4a3000; font-weight: bold; }
+
+  /* RSVP */
+  .rsvp-area { margin-top: 8px; }
+  .rsvp-area p { font-size: 15px; font-weight: bold; color: #7a4f00; margin-bottom: 10px; }
+  .rsvp-btns { display: flex; gap: 10px; justify-content: center; }
+  .rsvp-yes { background: linear-gradient(135deg, #4caf50, #2e7d32); color: #fff; border: none; border-radius: 24px; padding: 10px 28px; font-size: 14px; cursor: pointer; font-weight: bold; box-shadow: 0 3px 10px rgba(46,125,50,0.3); }
+  .rsvp-no { background: linear-gradient(135deg, #ef5350, #b71c1c); color: #fff; border: none; border-radius: 24px; padding: 10px 28px; font-size: 14px; cursor: pointer; font-weight: bold; box-shadow: 0 3px 10px rgba(183,28,28,0.3); }
+  .rsvp-result { margin-top: 10px; font-size: 15px; font-weight: bold; color: #3a5e00; background: #eafce8; border-radius: 8px; padding: 10px 16px; }
+
+  /* Edit modal */
+  .edit-modal {
+    display: none; position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.45);
+    align-items: center; justify-content: center;
+  }
+  .edit-modal.open { display: flex; }
+  .edit-box {
+    background: #fff; border-radius: 14px; padding: 22px 24px;
+    max-width: 400px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    max-height: 90vh; overflow-y: auto;
+  }
+  .edit-box h3 { font-size: 16px; color: #7a4f00; margin-bottom: 14px; }
+  .edit-box label { font-size: 12px; color: #7a5000; display: block; margin-bottom: 3px; margin-top: 10px; }
+  .edit-box input, .edit-box textarea { width: 100%; padding: 7px 10px; border: 1.5px solid #d4a843; border-radius: 7px; font-size: 13px; }
+  .edit-box textarea { height: 80px; resize: vertical; }
+  .save-btn { margin-top: 14px; background: linear-gradient(135deg, #f5c842, #c8960a); border: none; border-radius: 24px; padding: 10px 28px; font-size: 14px; cursor: pointer; color: #4a3000; font-weight: bold; width: 100%; }
+  .close-edit { float: right; cursor: pointer; font-size: 18px; color: #aaa; background: none; border: none; }
+
+  /* Nav */
+  .nav-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
+  .nav-btn { background: rgba(255,248,230,0.9); border: 1.5px solid #d4a843; border-radius: 20px; padding: 7px 18px; font-size: 13px; cursor: pointer; color: #7a4f00; transition: background 0.2s; }
+  .nav-btn:hover { background: #f5c842; }
+
+  .edit-float {
+    position: fixed; bottom: 16px; right: 16px; z-index: 50;
+    background: linear-gradient(135deg, #f5c842, #c8960a);
+    border: none; border-radius: 50%; width: 48px; height: 48px;
+    font-size: 20px; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+    color: #4a3000;
+  }
+</style>
+
+<div id="app">
+  <!-- BG layers -->
+  <div class="bg-layer active" id="bg0" style="background: linear-gradient(135deg, #fff3cd 0%, #fde68a 40%, #fbbf24 100%);"></div>
+  <div class="bg-layer" id="bg1" style="background: linear-gradient(135deg, #f0e6ff 0%, #c4b5fd 40%, #7c3aed 100%);"></div>
+  <div class="bg-layer" id="bg2" style="background: linear-gradient(135deg, #d1fae5 0%, #6ee7b7 40%, #059669 100%);"></div>
+  <div class="bg-layer" id="bg3" style="background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 40%, #ec4899 100%);"></div>
+
+  <!-- PAGE 0: Envelope -->
+  <div class="page active" id="page0">
+    <div class="envelope-wrap">
+      <div style="font-size: 22px; font-weight: bold; color: #7a4f00; text-shadow: 0 1px 4px rgba(255,255,255,0.8); margin-bottom: 10px; text-align:center;">
+        ✦ Сүндет тойына шақыру ✦
+      </div>
+      <div class="envelope" onclick="openEnvelope()">
+        <div class="envelope-body"></div>
+        <div class="envelope-left"></div>
+        <div class="envelope-right"></div>
+        <div class="envelope-bottom"></div>
+        <div class="envelope-flap" id="flap"></div>
+        <div class="envelope-seal" id="seal" title="Ашу үшін басыңыз">☪</div>
+      </div>
+      <button class="gold-btn" onclick="openEnvelope()">✉ Басыңыз</button>
+    </div>
+  </div>
+
+  <!-- PAGE 1: Photo -->
+  <div class="page" id="page1">
+    <div class="photo-page">
+      <div style="font-size: 20px; font-weight: bold; color: #fff; text-shadow: 0 2px 8px rgba(0,0,0,0.4); margin-bottom: 14px;">🌟 Нурислам 🌟</div>
+      <div class="photo-frame" id="photoFrame">
+        <div class="photo-placeholder" id="photoPlaceholder">
+          <span class="horse-icon">🐎</span>
+          <span>Атқа мінген<br>Нурисламның<br>суреті</span>
+        </div>
+        <img id="photoImg" style="display:none; width:100%; height:100%; object-fit:cover;" />
+      </div>
+      <input type="file" id="photoInput" accept="image/*" onchange="loadPhoto(event)">
+      <button class="upload-photo-btn" onclick="document.getElementById('photoInput').click()">📷 Фото жүктеу</button>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.9); margin-bottom: 4px;">5 жасар баланың атқа мінген суреті</div>
+    </div>
+    <div class="nav-row">
+      <button class="nav-btn" onclick="goPage(0)">← Артқа</button>
+      <button class="nav-btn" onclick="goPage(2)">Шақыру →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 2: Invitation text -->
+  <div class="page" id="page2">
+    <div class="invite-card">
+      <div class="ornament">☪ ✦ ☪</div>
+      <h2 id="greetingText">ҚҰРМЕТТІ АҒАЙЫН-ТУЫС, БАУЫРЛАР, ҚҰДА-ЖЕКЖАТ,<br>НАҒАШЫ-ЖИЕН, БӨЛЕЛЕР, ҚҰРБЫ-ҚҰРДАС,<br>АПКЕ-ЖЕЗДЕЛЕР, ДОС-ЖАРАНДАР, ӘРІПТЕСТЕР, КӨРШІЛЕР!</h2>
+      <div class="body-text" id="bodyText">
+        Сіз(дер)ді ұлымыз <strong>Нурисламның</strong> сүндет тойына арналған салтанатты ақ дастарханымыздың қадірлі қонағы болуға шақырамыз.
+      </div>
+      <div class="detail">
+        📅 <strong>Күні:</strong> <span id="dateText">12.04.2026 ж.</span><br>
+        🕕 <strong>Уақыты:</strong> <span id="timeText">Сағат 18:00</span><br>
+        🏛 <strong>Орны:</strong> <span id="venueText">«Көркем» тойханасы</span><br>
+        👨‍👩‍👦 <strong>Той иелері:</strong> <span id="hostsText">Нұрхан – Лаззат</span>
+      </div>
+      <div style="font-size: 14px; color: #7a5000; margin-bottom: 10px;">Келіңіздер, күтеміз! 🌹</div>
+    </div>
+    <div class="nav-row">
+      <button class="nav-btn" onclick="goPage(1)">← Артқа</button>
+      <button class="nav-btn" onclick="goPage(3)">Орын →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 3: Map -->
+  <div class="page" id="page3">
+    <div class="invite-card">
+      <div class="ornament">🗺</div>
+      <h2 style="font-size:16px; margin-bottom:12px; color:#7a4f00;">Той орнының картасы</h2>
+      <div class="map-area">
+        <div id="mapEmbed" style="width:100%; height:200px; border-radius:8px; overflow:hidden; background:#e8f0e8; display:flex; align-items:center; justify-content:center; color:#4a5a40; font-size:13px;">
+          📍 Картаны қосу үшін Google Maps сілтемесін енгізіңіз
+        </div>
+        <input class="map-input" type="text" id="mapUrl" placeholder="Google Maps iframe немесе сілтемесін осында қойыңыз" />
+        <button class="music-btn" style="margin-top:8px;" onclick="setMap()">Картаны қою</button>
+      </div>
+      <div style="font-size:13px; color:#7a5000; text-align:center;">
+        📍 <span id="venueAddr">«Көркем» тойханасы</span>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="nav-btn" onclick="goPage(2)">← Артқа</button>
+      <button class="nav-btn" onclick="goPage(4)">Ән →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 4: Music -->
+  <div class="page" id="page4">
+    <div class="invite-card">
+      <div class="ornament">🎵</div>
+      <h2 style="font-size:16px; margin-bottom:12px; color:#7a4f00;">Той әні</h2>
+      <div class="music-area">
+        <label>🎶 Өз әніңізді жүктеңіз</label>
+        <input type="file" id="audioFile" accept="audio/*" onchange="loadAudio(event)" style="display:none;">
+        <button class="music-btn" onclick="document.getElementById('audioFile').click()">Ән жүктеу</button>
+      </div>
+      <audio id="audioPlayer" controls style="width:100%; margin-bottom:12px; display:none;"></audio>
+      <div style="font-size:13px; color:#9a7000; text-align:center;">MP3 немесе басқа аудио форматтарды жүктей аласыз</div>
+    </div>
+    <div class="nav-row">
+      <button class="nav-btn" onclick="goPage(3)">← Артқа</button>
+      <button class="nav-btn" onclick="goPage(5)">Растау →</button>
+    </div>
+  </div>
+
+  <!-- PAGE 5: RSVP -->
+  <div class="page" id="page5">
+    <div class="invite-card">
+      <div class="ornament">🌹</div>
+      <h2 style="font-size:16px; margin-bottom:10px; color:#7a4f00;">Тойға келесіз бе?</h2>
+      <div style="font-size:13px; color:#5a3c00; margin-bottom:14px;">Сіздің жауабыңыз той иелері үшін өте маңызды!</div>
+      <div class="rsvp-area">
+        <div class="rsvp-btns">
+          <button class="rsvp-yes" onclick="rsvp(true)">✅ Келемін!</button>
+          <button class="rsvp-no" onclick="rsvp(false)">❌ Келе алмаймын</button>
+        </div>
+        <div class="rsvp-result" id="rsvpResult" style="display:none;"></div>
+      </div>
+      <div style="font-size:12px; color:#888; margin-top:14px; text-align:center;">
+        📱 Той иелері: <strong>Нұрхан – Лаззат</strong>
+      </div>
+    </div>
+    <div class="nav-row">
+      <button class="nav-btn" onclick="goPage(4)">← Артқа</button>
+      <button class="nav-btn" onclick="goPage(0)">🏠 Басына</button>
+    </div>
+  </div>
+
+  <!-- Edit float button -->
+  <button class="edit-float" onclick="openEdit()" title="Мәтінді өзгерту">✏️</button>
+</div>
+
+<!-- Edit Modal -->
+<div class="edit-modal" id="editModal">
+  <div class="edit-box">
+    <button class="close-edit" onclick="closeEdit()">✕</button>
+    <h3>✏️ Мәтінді өзгерту</h3>
+    <label>Сәлемдесу (қысқа)</label>
+    <textarea id="e_greeting">ҚҰРМЕТТІ АҒАЙЫН-ТУЫС, БАУЫРЛАР, ҚҰДА-ЖЕКЖАТ, НАҒАШЫ-ЖИЕН, БӨЛЕЛЕР, ҚҰРБЫ-ҚҰРДАС, АПКЕ-ЖЕЗДЕЛЕР, ДОС-ЖАРАНДАР, ӘРІПТЕСТЕР, КӨРШІЛЕР!</textarea>
+    <label>Негізгі мәтін</label>
+    <textarea id="e_body">Сіз(дер)ді ұлымыз <strong>Нурисламның<\/strong> сүндет тойына арналған салтанатты ақ дастарханымыздың қадірлі қонағы болуға шақырамыз.</textarea>
+    <label>Күні</label>
+    <input id="e_date" value="12.04.2026 ж.">
+    <label>Уақыты</label>
+    <input id="e_time" value="Сағат 18:00">
+    <label>Тойхана</label>
+    <input id="e_venue" value="«Көркем» тойханасы">
+    <label>Той иелері</label>
+    <input id="e_hosts" value="Нұрхан – Лаззат">
+    <button class="save-btn" onclick="saveEdit()">💾 Сақтау</button>
+  </div>
+</div>
+
+<script>
+let currentPage = 0;
+let envelopeOpened = false;
+
+function showBg(n) {
+  document.querySelectorAll('.bg-layer').forEach((el, i) => {
+    el.classList.toggle('active', i === n);
+  });
+}
+
+function goPage(n) {
+  document.querySelectorAll('.page').forEach((el, i) => {
+    el.classList.toggle('active', i === n);
+  });
+  currentPage = n;
+  showBg(Math.min(n, 3));
+}
+
+function openEnvelope() {
+  if (envelopeOpened) return;
+  envelopeOpened = true;
+  document.getElementById('flap').classList.add('open');
+  document.getElementById('seal').style.display = 'none';
+  setTimeout(() => goPage(1), 700);
+}
+
+function loadPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  document.getElementById('photoImg').src = url;
+  document.getElementById('photoImg').style.display = 'block';
+  document.getElementById('photoPlaceholder').style.display = 'none';
+}
+
+function loadAudio(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const player = document.getElementById('audioPlayer');
+  player.src = url;
+  player.style.display = 'block';
+}
+
+function setMap() {
+  const val = document.getElementById('mapUrl').value.trim();
+  const container = document.getElementById('mapEmbed');
+  if (!val) return;
+  if (val.includes('<iframe')) {
+    container.innerHTML = val;
+    const ifrm = container.querySelector('iframe');
+    if (ifrm) { ifrm.style.width = '100%'; ifrm.style.height = '200px'; ifrm.style.border = 'none'; ifrm.style.borderRadius = '8px'; }
+  } else {
+    container.innerHTML = '<a href="'+val+'" target="_blank" style="color:#2e7d32; font-size:14px; text-decoration:none;">📍 Картаны ашу →</a>';
+  }
+}
+
+function rsvp(coming) {
+  const result = document.getElementById('rsvpResult');
+  result.style.display = 'block';
+  if (coming) {
+    result.style.background = '#eafce8';
+    result.style.color = '#1b5e20';
+    result.innerHTML = '🎉 Рахмет! Сізді тойда күтеміз! <br><span style="font-size:12px;">12.04.2026, Сағат 18:00 – «Көркем» тойханасы</span>';
+  } else {
+    result.style.background = '#fce8e8';
+    result.style.color = '#7f1d1d';
+    result.innerHTML = '😔 Түсінікті. Шақырғанымызға рахмет!<br><span style="font-size:12px;">Болашақта бірге боламыз!</span>';
+  }
+}
+
+function openEdit() {
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEdit() {
+  document.getElementById('editModal').classList.remove('open');
+}
+function saveEdit() {
+  document.getElementById('greetingText').innerHTML = document.getElementById('e_greeting').value;
+  document.getElementById('bodyText').innerHTML = document.getElementById('e_body').value;
+  document.getElementById('dateText').textContent = document.getElementById('e_date').value;
+  document.getElementById('timeText').textContent = document.getElementById('e_time').value;
+  document.getElementById('venueText').textContent = document.getElementById('e_venue').value;
+  document.getElementById('hostsText').textContent = document.getElementById('e_hosts').value;
+  document.getElementById('venueAddr').textContent = document.getElementById('e_venue').value;
+  closeEdit();
+}
+</script>
